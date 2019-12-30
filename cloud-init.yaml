@@ -1,0 +1,31 @@
+#cloud-config
+users:
+  - name: ubuntu
+    shell: /bin/bash
+    sudo: ['ALL=(ALL) NOPASSWD:ALL']
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+packages:
+  - mysql-server
+  - nginx
+runcmd:
+  - curl -sL https://deb.nodesource.com/setup_10.x | bash -
+  - curl -sS https://dl.yarnpkg.com/debian/pubkey.gpg | apt-key add -
+  - echo "deb https://dl.yarnpkg.com/debian/ stable main" | tee /etc/apt/sources.list.d/yarn.list
+  - apt-get update && apt-get -y install nodejs yarn
+  - yarn global add ghost-cli
+  - mkdir -p /var/www/ghost
+  - chown ubuntu:ubuntu /var/www/ghost
+  - chmod 775 /var/www/ghost
+  - echo "ALTER USER 'root'@'localhost' IDENTIFIED WITH mysql_native_password BY '';" | mysql
+  - |
+    cd /var/www/ghost && sudo -u ubuntu ghost install \
+      --no-prompt \
+      --url ${host} \
+      --db mysql \
+      --dbhost localhost \
+      --dbuser root \
+      --dbpass '' \
+      --dbname ghost \
+      --sslemail ${email} \
+      --process systemd
